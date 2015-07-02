@@ -16,6 +16,9 @@
     <Filter Include="EyeRecognizer">
       <UniqueIdentifier>{26cd39d8-583b-4aa0-8987-39abe53f54c9}</UniqueIdentifier>
     </Filter>
+    <Filter Include="Flooder">
+      <UniqueIdentifier>{aedfec53-07ff-4247-9a53-a15b37e7ac92}</UniqueIdentifier>
+    </Filter>
   </ItemGroup>
   <ItemGroup>
     <None Include="packages.config" />
@@ -48,6 +51,9 @@
     <ClCompile Include="EyeRecognizer.cpp">
       <Filter>EyeRecognizer</Filter>
     </ClCompile>
+    <ClCompile Include="Flooder.cpp">
+      <Filter>Flooder</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="EyeRecognizer.h">
@@ -60,6 +66,15 @@
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="MouseWrapper.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="Array2D.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="Flooder.h">
+      <Filter>Flooder</Filter>
+    </ClInclude>
+    <ClInclude Include="Rectangle.h">
       <Filter>Header Files</Filter>
     </ClInclude>
   </ItemGroup>

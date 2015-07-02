@@ -6,9 +6,14 @@
 #include <opencv2/highgui/highgui.hpp>
 
 #include "EyeRecognizer.h"
+#include "Array2D.h"
+#include "Flooder.h"
 
 const float win_width = 1280;
 const float win_height = 800;
+
+bool create_bmp(int width, int height, const char * file_path, const unsigned char * data_bgr);
+
 
 bool EyeRecognizer::was_set_eye_area() const
 {
@@ -32,6 +37,25 @@ void EyeRecognizer::set_eye_area(const MouseData & mouse_data)
 
 	pupil_radius = area_width*0.5f;
 }
+
+void EyeRecognizer::show_pupil(cv::Mat & cap_image)
+{
+
+
+	const int area_width = eye_area.end.x - eye_area.beg.x;
+	const int area_height = eye_area.end.y - eye_area.beg.y;
+
+	IntCoor2 center;
+	const float cx = eye_area.beg.x + area_width*0.5f;
+	center.x = static_cast<int>(round(cx));
+	const float cy = eye_area.beg.y + area_height*0.5f;
+	center.y = static_cast<int>(round(cy));
+
+	Flooder flooder;
+	flooder.init(cap_image, eye_area, threshold);
+	flooder.flood(center);
+}
+
 
 bool EyeRecognizer::was_lefttop_set() const
 {
@@ -102,6 +126,7 @@ EyeRecognizer::EyeRecognizer()
 	was_set_eye_area_ = false;
 	was_lefttop_set_ = false;
 	was_rightbot_set_ = false;
+	threshold = 70;
 
 	close_image = cv::imread("close.bmp");
 }

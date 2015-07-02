@@ -26,6 +26,12 @@ int main()
 
 	// 変数宣言
 	cv::Mat im;
+
+#if 0
+	cv::Mat base_im;
+	base_im = cv::imread("perfectly_opened.bmp");
+
+#else
 	// カメラのキャプチャ
 	cv::VideoCapture cap(0);
 	// キャプチャのエラー処理
@@ -39,6 +45,7 @@ int main()
 
 	cap >> im;	// 最初の画像は破棄しないと、環境によってはエラーになるらしい。
 	cap >> im;
+#endif
 
 	std::string window("capture");
 	cv::namedWindow(window, CV_WINDOW_AUTOSIZE);
@@ -59,8 +66,12 @@ int main()
 
 	while (1)
 	{
+#if 1
 		// カメラ映像の取得
 		cap >> im;
+#else
+		base_im.copyTo(im);
+#endif
 
 		if (eyezer.was_set_eye_area() == false)
 		{
@@ -72,6 +83,14 @@ int main()
 		}
 		else if (eyezer.was_lefttop_set() == false)
 		{
+			cv::rectangle(
+				im,
+				cv::Point2d(mouse_data.beg.x, mouse_data.beg.y),
+				cv::Point2d(mouse_data.end.x, mouse_data.end.y),
+				cv::Scalar(0xff, 0x00, 0x00));
+
+			eyezer.show_pupil(im);
+
 			// show "look upper left on your display."
 			//      "And plz press left button of your mouse."
 		}
@@ -112,9 +131,8 @@ int main()
 #endif
 
 		// キー入力があれば終了
-		if (cv::waitKey(30) >= 0)
+		if (cv::waitKey(3) >= 0)
 		{
-			create_bmp(im.size().width, -im.size().height, "test.bmp", im.data);
 			break;
 		}
 	}

@@ -90,15 +90,19 @@
     <ClCompile Include="dif_filtering.cpp" />
     <ClCompile Include="EyeRecognizer.cpp" />
     <ClCompile Include="eye_recog.cpp" />
+    <ClCompile Include="Flooder.cpp" />
     <ClCompile Include="main.cpp" />
     <ClCompile Include="monochro_to_bgr.cpp" />
     <ClCompile Include="my_mouse_callback.cpp" />
   </ItemGroup>
   <ItemGroup>
+    <ClInclude Include="Array2D.h" />
     <ClInclude Include="Coor2.h" />
     <ClInclude Include="EyeRecognizer.h" />
+    <ClInclude Include="Flooder.h" />
     <ClInclude Include="MouseData.h" />
     <ClInclude Include="MouseWrapper.h" />
+    <ClInclude Include="Rectangle.h" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">

@@ -2,12 +2,15 @@
 
 #include "Coor2.h"
 #include "MouseData.h"
+#include "Rectangle.h"
 
 class EyeRecognizer
 {
 public:
 	bool was_set_eye_area() const;
 	void set_eye_area(const MouseData & mouse_data);
+
+	void show_pupil(cv::Mat & cap_image);
 
 	bool was_lefttop_set() const;
 	void set_lefttop(const cv::Mat & cap_image);
@@ -20,14 +23,9 @@ public:
 
 	EyeRecognizer();
 private:
-	struct Rectangle
-	{
-		IntCoor2 beg;
-		IntCoor2 end;
-	};
 
 	bool was_set_eye_area_;
-	Rectangle eye_area;	// based on the image
+	my::Rectangle eye_area;	// based on the image
 
 	Coor2 win_coor_;
 	bool was_lefttop_set_;
@@ -42,6 +40,7 @@ private:
 	cv::Mat close_image;
 
 	float pupil_radius;
+	int threshold;
 
 	bool get_pupil_coor(const cv::Mat & cap_image, float & x, float & y);
 	int compute_pupil_coor(const cv::Mat & cap_image, float & x, float & y);
