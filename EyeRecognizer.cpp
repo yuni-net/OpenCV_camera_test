@@ -36,12 +36,12 @@ void EyeRecognizer::set_eye_area(const MouseData & mouse_data)
 	temp.copyTo(close_image);
 
 	pupil_radius = area_width*0.5f;
+	total_radius = pupil_radius;
+	sampling_num = 1;
 }
 
 void EyeRecognizer::show_pupil(cv::Mat & cap_image)
 {
-
-
 	const int area_width = eye_area.end.x - eye_area.beg.x;
 	const int area_height = eye_area.end.y - eye_area.beg.y;
 
@@ -51,17 +51,71 @@ void EyeRecognizer::show_pupil(cv::Mat & cap_image)
 	const float cy = eye_area.beg.y + area_height*0.5f;
 	center.y = static_cast<int>(round(cy));
 
+	if (is_not_black(cap_image, center))
+	{
+		center = find_black(cap_image, center);
+	}
+
 	Flooder flooder;
 	flooder.init(cap_image, eye_area, threshold);
-	flooder.flood(center);
+	pupil_area = flooder.flood(center, pupil_top4);
+
+	// debug
+	const int index = cap_image.size().width*center.y + center.x;
+	cap_image.data[index * 3 + 0] = 0;
+	cap_image.data[index * 3 + 1] = 255;
+	cap_image.data[index * 3 + 2] = 0;
+
+	if (was_set_threshold() == false)
+	{
+		const int width = pupil_area.end.x - pupil_area.beg.x;
+		const int height = pupil_area.end.y - pupil_area.beg.y;
+		float this_radius;
+		if (width >= height)
+		{
+			this_radius = width*0.5f;
+		}
+		else
+		{
+			this_radius = height*0.5f;
+		}
+		total_radius += this_radius;
+		sampling_num += 1;
+		pupil_radius = total_radius / sampling_num;	// 平均をとる
+		if (sampling_num >= 10000)
+		{
+			total_radius *= 0.5f;
+			sampling_num = 5000;
+		}
+	}
+
 }
+
+bool EyeRecognizer::was_set_threshold() const
+{
+	return was_set_threshold_;
+}
+void EyeRecognizer::renew_threshold()
+{
+	POINT point;
+	GetCursorPos(&point);
+	//	ScreenToClient(cv::GetWindowHandle(""), &point);
+	ScreenToClient(NULL, &point);
+
+	threshold = static_cast<int>((point.x-640)*0.6f);
+}
+void EyeRecognizer::set_threshold()
+{
+	was_set_threshold_ = true;
+}
+
 
 
 bool EyeRecognizer::was_lefttop_set() const
 {
 	return was_lefttop_set_;
 }
-void EyeRecognizer::set_lefttop(const cv::Mat & cap_image)
+void EyeRecognizer::set_lefttop(cv::Mat & cap_image)
 {
 	const bool result = get_pupil_coor(cap_image, pupil_leftest, pupil_topest);
 	if (result==false)
@@ -76,7 +130,7 @@ bool EyeRecognizer::was_rightbot_set() const
 {
 	return was_rightbot_set_;
 }
-void EyeRecognizer::set_rightbot(const cv::Mat & cap_image)
+void EyeRecognizer::set_rightbot(cv::Mat & cap_image)
 {
 	// 必ず左上の後に右下を設定することが前提
 
@@ -97,7 +151,7 @@ void EyeRecognizer::set_rightbot(const cv::Mat & cap_image)
 }
 
 
-void EyeRecognizer::recognize(const cv::Mat & target)
+void EyeRecognizer::recognize(cv::Mat & target)
 {
 	float pupil_x;
 	float pupil_y;
@@ -108,7 +162,13 @@ void EyeRecognizer::recognize(const cv::Mat & target)
 		return;
 	}
 
-	float pupil_x_rel = pupil_movable_width - (pupil_x - pupil_leftest);	// キャプチャ画像は、左右が逆転しているから
+	// debug
+	const int index = static_cast<int>(target.size().width*pupil_y + pupil_x);
+	target.data[index * 3 + 0] = 0;
+	target.data[index * 3 + 1] = 0;
+	target.data[index * 3 + 2] = 255;
+
+	float pupil_x_rel = pupil_x - pupil_leftest;
 	float pupil_y_rel = pupil_y - pupil_topest;
 
 	win_coor_.x = win_width * pupil_x_rel / pupil_movable_width;
@@ -124,24 +184,18 @@ const Coor2 & EyeRecognizer::win_coor()
 EyeRecognizer::EyeRecognizer()
 {
 	was_set_eye_area_ = false;
+	was_set_threshold_ = false;
 	was_lefttop_set_ = false;
 	was_rightbot_set_ = false;
-	threshold = 70;
+	threshold = 74;
 
 	close_image = cv::imread("close.bmp");
 }
 
-bool EyeRecognizer::get_pupil_coor(const cv::Mat & cap_image, float & x, float & y)
+bool EyeRecognizer::get_pupil_coor(cv::Mat & cap_image, float & x, float & y)
 {
-	int def_pupil = compute_pupil_coor(cap_image, x, y);
-	int def_close = compute_def_close(cap_image);
-
-	if (def_pupil >= def_close)
-	{
-		return false;
-	}
-
-	return true;
+	show_pupil(cap_image);
+	return compute_pupil_coor(pupil_area, pupil_top4, x, y);
 }
 
 int EyeRecognizer::compute_pupil_coor(const cv::Mat & cap_image, float & x, float & y)
@@ -267,4 +321,141 @@ float EyeRecognizer::compute_length2(const IntCoor2 & one, const IntCoor2 & anot
 	gap.x = one.x - another.x;
 	gap.y = one.y - another.y;
 	return static_cast<float>(gap.x*gap.x + gap.y*gap.y);
+}
+
+
+bool EyeRecognizer::is_not_black(const cv::Mat & cap_image, const IntCoor2 & coor) const
+{
+	const int high_bright = 50;
+	const int high_contrast = 6;
+	const int index = cap_image.size().width*coor.y + coor.x;
+
+	const int b = static_cast<int>(cap_image.data[index * 3 + 0]);
+	const int g = static_cast<int>(cap_image.data[index * 3 + 1]);
+	const int r = static_cast<int>(cap_image.data[index * 3 + 2]);
+
+	if (b > high_bright ||
+		g > high_bright ||
+		r > high_bright)
+	{
+		return true;
+	}
+
+	if (abs(b - g) > high_contrast ||
+		abs(g - r) > high_contrast ||
+		abs(r - b) > high_contrast)
+	{
+		return true;
+	}
+
+	return false;
+}
+
+IntCoor2 EyeRecognizer::find_black(const cv::Mat & cap_image, const IntCoor2 & coor) const
+{
+	const int area_width = eye_area.end.x - eye_area.beg.x;
+	IntCoor2 searched_coor;
+
+	for (int outline_size = 3; outline_size <= area_width; outline_size+=2)
+	{
+		const bool is_black = search_black_outline(cap_image, coor, outline_size, searched_coor);
+		if (is_black)
+		{
+			return searched_coor;
+		}
+	}
+
+	return coor;
+}
+
+bool EyeRecognizer::search_black_outline(const cv::Mat & cap_image, const IntCoor2 & coor, const int outline_size, IntCoor2 & searched_coor) const
+{
+	const int half_size = outline_size / 2;
+
+	const int beg_x = coor.x - half_size;
+	const int end_x = coor.x + half_size;
+
+	const int beg_y = coor.y - half_size;
+	const int end_y = coor.y + half_size;
+
+	for (int y = beg_y; y <= end_y; ++y)
+	{
+		if (y == beg_y || y == end_y)
+		{
+			for (int x = beg_x; x <= end_x; ++x)
+			{
+				searched_coor.x = x;
+				searched_coor.y = y;
+				if (is_not_black(cap_image, searched_coor) == false)
+				{
+					return true;
+				}
+			}
+		}
+		else
+		{
+			searched_coor.x = beg_x;
+			searched_coor.y = y;
+			if (is_not_black(cap_image, searched_coor) == false)
+			{
+				return true;
+			}
+
+			searched_coor.x = end_x;
+			searched_coor.y = y;
+			if (is_not_black(cap_image, searched_coor) == false)
+			{
+				return true;
+			}
+		}
+	}
+
+	return false;
+}
+
+/***
+@return true...ウィンクしていない　false...ウィンクしている
+*/
+bool EyeRecognizer::compute_pupil_coor(const my::Rectangle & pupil_area, const Top4 & pupil_top4, float & x, float & y)
+{
+	const int pupil_width = pupil_area.end.x - pupil_area.beg.x;
+	const int pupil_height = pupil_area.end.y - pupil_area.beg.y;
+	float visible_radius;
+
+	if (pupil_width >= pupil_height)
+	{
+		visible_radius = pupil_width*0.5f;
+	}
+	else
+	{
+		visible_radius = pupil_height*0.5f;
+	}
+
+	if (pupil_radius - visible_radius < 2.0f)
+	{
+		x = pupil_area.beg.x + pupil_width*0.5f;
+		y = pupil_area.beg.y + pupil_height*0.5f;
+		return true;
+	}
+
+	const int eye_width = eye_area.end.x - eye_area.beg.x;
+	const int center_x = eye_area.beg.x + static_cast<int>(round(eye_width*0.5f));
+
+	if (center_x < pupil_area.beg.x)
+	{
+		x = pupil_area.beg.x + pupil_radius;
+		y = static_cast<float>(pupil_top4.leftest_y);
+		return true;
+	}
+
+	if (pupil_area.end.x < center_x)
+	{
+		x = pupil_area.end.x - pupil_radius;
+		y = static_cast<float>(pupil_top4.rightest_y);
+		return true;
+	}
+
+	x = static_cast<float>(pupil_area.beg.x + pupil_width);
+	y = static_cast<float>(pupil_top4.rightest_y);
+	return true;
 }

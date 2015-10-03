@@ -33,6 +33,11 @@ void my_mouse_callback(int event, int x, int y, int flags, void * param)
 		}
 		else
 		{
+			if (eyezer.was_set_threshold() == false)
+			{
+				eyezer.set_threshold();
+				break;
+			}
 			if (eyezer.was_lefttop_set() == false)
 			{
 				eyezer.set_lefttop(cap_image);

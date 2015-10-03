@@ -44,7 +44,11 @@ int main()
 	}
 
 	cap >> im;	// 最初の画像は破棄しないと、環境によってはエラーになるらしい。
-	cap >> im;
+	{
+		cv::Mat temp;
+		cap >> temp;
+		cv::flip(temp, im, 1);
+	}
 #endif
 
 	std::string window("capture");
@@ -68,34 +72,39 @@ int main()
 	{
 #if 1
 		// カメラ映像の取得
-		cap >> im;
+		{
+			cv::Mat temp;
+			cap >> temp;
+			cv::flip(temp, im, 1);
+		}
 #else
 		base_im.copyTo(im);
 #endif
 
+		cv::rectangle(
+			im,
+			cv::Point2d(mouse_data.beg.x, mouse_data.beg.y),
+			cv::Point2d(mouse_data.end.x, mouse_data.end.y),
+			cv::Scalar(0xff, 0x00, 0x00));
+
 		if (eyezer.was_set_eye_area() == false)
 		{
-			cv::rectangle(
-				im,
-				cv::Point2d(mouse_data.beg.x, mouse_data.beg.y),
-				cv::Point2d(mouse_data.end.x, mouse_data.end.y),
-				cv::Scalar(0xff, 0x00, 0x00));
+			// show "draw rectangle around your an eye"
+		}
+		else if (eyezer.was_set_threshold() == false)
+		{
+			eyezer.renew_threshold();
+			eyezer.show_pupil(im);
 		}
 		else if (eyezer.was_lefttop_set() == false)
 		{
-			cv::rectangle(
-				im,
-				cv::Point2d(mouse_data.beg.x, mouse_data.beg.y),
-				cv::Point2d(mouse_data.end.x, mouse_data.end.y),
-				cv::Scalar(0xff, 0x00, 0x00));
-
 			eyezer.show_pupil(im);
-
 			// show "look upper left on your display."
 			//      "And plz press left button of your mouse."
 		}
 		else if (eyezer.was_rightbot_set() == false)
 		{
+			eyezer.show_pupil(im);
 			// show "look lower right on your display."
 			//      "And plz press left button of your mouse."
 		}

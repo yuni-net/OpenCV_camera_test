@@ -12,23 +12,55 @@ void Flooder::init(cv::Mat & cap_image, const my::Rectangle & search_area, const
 	const int height = search_area.end.y - search_area.beg.y;
 
 	did_judge_table.create(height, width, false);
+	pupil_area.beg.x = -1;
 }
 
-void Flooder::flood(const IntCoor2 & coor)
+my::Rectangle Flooder::flood(const IntCoor2 & coor, Top4 & pupil_top4)
 {
 	if (coor.x < search_area.beg.x ||
 		coor.x >= search_area.end.x ||
 		coor.y < search_area.beg.y ||
 		coor.y >= search_area.end.y)
 	{
-		return;
+		return pupil_area;
 	}
 
 	const IntCoor2 local_coor = compute_local_coor(coor);
 
 	if (did_judge_table.at(local_coor) == true)
 	{
-		return;
+		return pupil_area;
+	}
+
+	if (pupil_area.beg.x == -1)
+	{
+		// pupil_areaÇÕñ¢èâä˙âªÇÃèÛë‘
+		pupil_area.beg.x = coor.x;
+		pupil_area.beg.y = coor.y;
+		pupil_area.end = pupil_area.beg;
+		pupil_top4.leftest_y = coor.y;
+		pupil_top4.rightest_y = coor.y;
+	}
+	else
+	{
+		if (coor.x < pupil_area.beg.x)
+		{
+			pupil_area.beg.x = coor.x;
+			pupil_top4.leftest_y = coor.y;
+		}
+		if (coor.x > pupil_area.end.x)
+		{
+			pupil_area.end.x = coor.x;
+			pupil_top4.rightest_y = coor.y;
+		}
+		if (coor.y < pupil_area.beg.y)
+		{
+			pupil_area.beg.y = coor.y;
+		}
+		if (coor.y > pupil_area.end.y)
+		{
+			pupil_area.end.y = coor.y;
+		}
 	}
 
 	bool is_different = judge(coor);
@@ -45,7 +77,7 @@ void Flooder::flood(const IntCoor2 & coor)
 
 	if (is_different)
 	{
-		return;
+		return pupil_area;
 	}
 
 	for (int y = 1; y >= -1; --y)
@@ -55,9 +87,11 @@ void Flooder::flood(const IntCoor2 & coor)
 			IntCoor2 next_coor;
 			next_coor.x = coor.x + x;
 			next_coor.y = coor.y + y;
-			flood(next_coor);
+			flood(next_coor, pupil_top4);
 		}
 	}
+
+	return pupil_area;
 }
 
 bool Flooder::judge(const IntCoor2 & coor)

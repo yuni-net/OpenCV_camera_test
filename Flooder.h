@@ -8,6 +8,7 @@
 #include "Rectangle.h"
 #include "Coor2.h"
 #include "Array2D.h"
+#include "Top4.h"
 
 /***
 隣り合う画素が同系統の色かどうかを次々と判定してゆくためのクラスです。
@@ -30,7 +31,7 @@ public:
 	@brief 隣り合う画素が同系統の色かどうかを次々と判定してゆきます。
 	@param 基準とする画素の座標を指定してください。
 	*/
-	void flood(const IntCoor2 & coor);
+	my::Rectangle flood(const IntCoor2 & coor, Top4 & pupil_top4);
 
 
 
@@ -40,6 +41,7 @@ private:
 	my::Rectangle search_area;
 	Array2D<bool> did_judge_table;
 	int threshold;
+	my::Rectangle pupil_area;
 
 	bool judge(const IntCoor2 & coor);
 	IntCoor2 compute_local_coor(const IntCoor2 & coor);
