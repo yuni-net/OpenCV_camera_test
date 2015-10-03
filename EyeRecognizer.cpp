@@ -32,7 +32,12 @@ void EyeRecognizer::set_eye_area(const MouseData & mouse_data)
 
 	const int area_width = eye_area.end.x - eye_area.beg.x;
 	cv::Mat temp(area_width, area_width, close_image.type());
-	cv::resize(close_image, temp, temp.size(), cv::INTER_LINEAR);
+	try{
+		cv::resize(close_image, temp, temp.size(), cv::INTER_LINEAR);
+	}
+	catch (...){
+		// Nothing OpenCV‚ªƒoƒO‚Á‚Ä‚é‚©‚ç—áŠO‚ðˆ¬‚è‚Â‚Ô‚·
+	}
 	temp.copyTo(close_image);
 
 	pupil_radius = area_width*0.5f;

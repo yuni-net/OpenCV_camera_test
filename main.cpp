@@ -27,11 +27,6 @@ int main()
 	// 変数宣言
 	cv::Mat im;
 
-#if 0
-	cv::Mat base_im;
-	base_im = cv::imread("perfectly_opened.bmp");
-
-#else
 	// カメラのキャプチャ
 	cv::VideoCapture cap(0);
 	// キャプチャのエラー処理
@@ -49,7 +44,6 @@ int main()
 		cap >> temp;
 		cv::flip(temp, im, 1);
 	}
-#endif
 
 	std::string window("capture");
 	cv::namedWindow(window, CV_WINDOW_AUTOSIZE);
@@ -70,16 +64,12 @@ int main()
 
 	while (1)
 	{
-#if 1
 		// カメラ映像の取得
 		{
 			cv::Mat temp;
 			cap >> temp;
 			cv::flip(temp, im, 1);
 		}
-#else
-		base_im.copyTo(im);
-#endif
 
 		cv::rectangle(
 			im,
@@ -116,28 +106,9 @@ int main()
 				static_cast<int>(round(eyezer.win_coor().y)));
 		}
 
-#if 0
-		if (mouse_data.finished_drag)
-		{
-			eyezer.recognize(im, mouse_data);
-			SetCursorPos(static_cast<int>(eyezer.win_coor().x), static_cast<int>(eyezer.win_coor().y));
-		}
-
-		cv::Mat temp;
-		im.copyTo(temp);
-		cv::rectangle(
-			temp,
-			cv::Point2d(mouse_data.beg.x, mouse_data.beg.y),
-			cv::Point2d(mouse_data.end.x, mouse_data.end.y),
-			cv::Scalar(0xff, 0x00, 0x00));
-
-		// 映像の表示
-		cv::imshow(window, temp);
-#else
 
 		// 映像の表示
 		cv::imshow(window, im);
-#endif
 
 		// キー入力があれば終了
 		if (cv::waitKey(3) >= 0)
